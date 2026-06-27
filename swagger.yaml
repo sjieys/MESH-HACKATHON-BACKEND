@@ -1,0 +1,1323 @@
+openapi: 3.0.0
+info:
+  title: VoDa API
+  description: 개인화 봉사 매칭 플랫폼 · 1365 봉사참여정보 API 연동
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: 로컬 개발 서버
+
+tags:
+  - name: Home
+    description: 홈 화면
+  - name: Volunteers
+    description: 봉사 공고
+  - name: Users
+    description: 유저
+  - name: Bookmarks
+    description: 찜
+  - name: Activities
+    description: 내 활동
+  - name: Search
+    description: 검색
+  - name: Categories
+    description: 카테고리
+  - name: Regions
+    description: 지역
+  - name: Notifications
+    description: 알림
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    VolunteerItem:
+      type: object
+      properties:
+        progrmRegistNo:
+          type: integer
+          example: 3427853
+        progrmSj:
+          type: string
+          example: 한강 플로깅 쓰레기 줍기 환경 캠페인
+        nanmmbyNm:
+          type: string
+          example: 서울환경연합
+        actPlace:
+          type: string
+          example: 망원한강공원 1주차장(마포구)
+        sidoCd:
+          type: integer
+          example: 6110000
+        gugunCd:
+          type: integer
+          example: 3140000
+        progrmBgnde:
+          type: integer
+          example: 20260712
+        progrmEndde:
+          type: integer
+          example: 20260712
+        noticeBgnde:
+          type: integer
+          example: 20260601
+        noticeEndde:
+          type: integer
+          example: 20260711
+        actBeginTm:
+          type: integer
+          example: 9
+        actEndTm:
+          type: integer
+          example: 12
+        srvcClCode:
+          type: string
+          example: 환경ㆍ생태계보호
+        progrmSttusSe:
+          type: integer
+          description: "2: 모집중 / 3: 모집완료"
+          example: 2
+        adultPosblAt:
+          type: string
+          enum: [Y, N]
+          example: Y
+        yngbgsPosblAt:
+          type: string
+          enum: [Y, N]
+          example: Y
+        url:
+          type: string
+          example: https://1365.go.kr/vols/P9210/partcptn/timeCptn.do?type=show&progrmRegistNo=3427853
+
+    VolunteerListResponse:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+          example: 100
+        pageNo:
+          type: integer
+          example: 1
+        numOfRows:
+          type: integer
+          example: 20
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/VolunteerItem'
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 김봉사
+        email:
+          type: string
+          example: example@email.com
+        ageGroup:
+          type: string
+          enum: [10대, 20대, 30대, 40대, 50대이상]
+          example: 20대
+        regionCode:
+          type: string
+          example: "0101"
+        profileImageUrl:
+          type: string
+          nullable: true
+          example: null
+        notificationEnabled:
+          type: boolean
+          example: true
+
+    MbtiResponse:
+      type: object
+      properties:
+        mbtiType:
+          type: string
+          example: 그린메이커형
+        activityStyle:
+          type: string
+          enum: [혼자, 소규모, 대규모]
+          example: 소규모
+        frequency:
+          type: string
+          enum: [주1회이상, 월2-3회, 월1회, 비정기]
+          example: 월2-3회
+        availableDays:
+          type: string
+          example: MON,SAT,SUN
+        preferredRegion:
+          type: string
+          nullable: true
+          example: "0101"
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        volunteerId:
+          type: integer
+          nullable: true
+          example: 3427853
+        progrmSj:
+          type: string
+          example: 한강 플로깅 환경 캠페인
+        nanmmbyNm:
+          type: string
+          example: 서울환경연합
+        categoryCode:
+          type: string
+          example: ENV
+        status:
+          type: string
+          enum: [pending, approved, scheduled, completed]
+          example: scheduled
+        scheduledDate:
+          type: string
+          format: date
+          example: "2026-07-12"
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 서버 오류가 발생했습니다.
+
+paths:
+
+  # ── Home ──────────────────────────────────
+  /api/home:
+    get:
+      tags: [Home]
+      summary: 홈 화면 데이터 (H-01)
+      description: AI 맞춤 추천 + 지역 기반 봉사 목록. 로그인 유저면 MBTI 기반 필터 적용.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mbtiType:
+                    type: string
+                    nullable: true
+                    example: 그린메이커형
+                  recommended:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VolunteerItem'
+                  nearby:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VolunteerItem'
+
+  # ── Volunteers ────────────────────────────
+  /api/volunteers:
+    get:
+      tags: [Volunteers]
+      summary: 봉사 목록 (V-01)
+      parameters:
+        - in: query
+          name: keyword
+          schema: { type: string }
+          example: 환경
+        - in: query
+          name: sidoCd
+          schema: { type: integer }
+          example: 6110000
+        - in: query
+          name: gugunCd
+          schema: { type: integer }
+          example: 3140000
+        - in: query
+          name: srvcClCode
+          schema: { type: string }
+          example: 환경ㆍ생태계보호
+        - in: query
+          name: pageNo
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: numOfRows
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolunteerListResponse'
+
+  /api/volunteers/recommended:
+    get:
+      tags: [Volunteers]
+      summary: MBTI 기반 추천 (V-02)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: pageNo
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: numOfRows
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolunteerListResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/volunteers/deadline:
+    get:
+      tags: [Volunteers]
+      summary: 마감 임박 목록 (V-03)
+      parameters:
+        - in: query
+          name: sidoCd
+          schema: { type: integer }
+          example: 6110000
+        - in: query
+          name: pageNo
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    example: 5
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/VolunteerItem'
+                        - type: object
+                          properties:
+                            dday:
+                              type: integer
+                              description: 0이면 오늘 마감
+                              example: 2
+
+  /api/volunteers/schedule:
+    get:
+      tags: [Volunteers]
+      summary: 시간 기반 봉사 매칭 (V-04)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: availableDays
+          required: true
+          schema: { type: string }
+          example: MON,SAT
+        - in: query
+          name: beginTm
+          required: true
+          schema: { type: integer }
+          example: 9
+        - in: query
+          name: endTm
+          required: true
+          schema: { type: integer }
+          example: 18
+        - in: query
+          name: sidoCd
+          schema: { type: integer }
+          example: 6110000
+        - in: query
+          name: pageNo
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolunteerListResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/volunteers/map:
+    get:
+      tags: [Volunteers]
+      summary: 지도용 봉사 목록 (V-05)
+      parameters:
+        - in: query
+          name: sidoCd
+          schema: { type: integer }
+          example: 6110000
+        - in: query
+          name: gugunCd
+          schema: { type: integer }
+          example: 3140000
+        - in: query
+          name: srvcClCode
+          schema: { type: string }
+          example: 환경ㆍ생태계보호
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    example: 7
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/VolunteerItem'
+                        - type: object
+                          properties:
+                            gugunName:
+                              type: string
+                              example: 마포구
+
+  /api/volunteers/{id}:
+    get:
+      tags: [Volunteers]
+      summary: 봉사 상세 (V-06)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          example: 3427853
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/VolunteerItem'
+                  - type: object
+                    properties:
+                      progrmCn:
+                        type: string
+                        example: 한강변 쓰레기 수거 및 환경 정화 활동
+                      actWkdy:
+                        type: string
+                        example: 토
+                      grpPosblAt:
+                        type: string
+                        enum: [Y, N]
+                        example: Y
+                      familyPosblAt:
+                        type: string
+                        enum: [Y, N]
+                        example: N
+                      rcritNmpr:
+                        type: integer
+                        example: 30
+                      appTotal:
+                        type: integer
+                        example: 21
+                      telno:
+                        type: string
+                        example: 02-123-4567
+                      email:
+                        type: string
+                        example: volunteer@example.org
+                      matchScore:
+                        type: integer
+                        nullable: true
+                        description: 로그인 유저의 MBTI 매칭 점수 (0~100)
+                        example: 94
+
+  # ── Users ─────────────────────────────────
+  /api/users/signup:
+    post:
+      tags: [Users]
+      summary: 회원가입 (U-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, ageGroup, regionCode]
+              properties:
+                name:
+                  type: string
+                  example: 김봉사
+                email:
+                  type: string
+                  example: example@email.com
+                password:
+                  type: string
+                  example: password123!
+                ageGroup:
+                  type: string
+                  enum: [10대, 20대, 30대, 40대, 50대이상]
+                  example: 20대
+                regionCode:
+                  type: string
+                  example: "0101"
+      responses:
+        '201':
+          description: 회원가입 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  name:
+                    type: string
+                    example: 김봉사
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '409':
+          description: 이미 존재하는 이메일
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/login:
+    post:
+      tags: [Users]
+      summary: 로그인 (U-02)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: example@email.com
+                password:
+                  type: string
+                  example: password123!
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: 이메일 또는 비밀번호 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/social-login:
+    post:
+      tags: [Users]
+      summary: 소셜 로그인 (U-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, providerToken]
+              properties:
+                provider:
+                  type: string
+                  enum: [kakao, naver, google]
+                  example: google
+                providerToken:
+                  type: string
+                  example: google_oauth_access_token
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+                  isNewUser:
+                    type: boolean
+                    example: true
+
+  /api/users/me:
+    get:
+      tags: [Users]
+      summary: 내 정보 조회 (U-04)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Users]
+      summary: 내 정보 수정 (U-05)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: 김봉사
+                regionCode:
+                  type: string
+                  example: "0102"
+                notificationEnabled:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/mbti:
+    post:
+      tags: [Users]
+      summary: MBTI 저장 (U-06)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mbtiType, activityStyle, frequency, availableDays]
+              properties:
+                mbtiType:
+                  type: string
+                  example: 그린메이커형
+                activityStyle:
+                  type: string
+                  enum: [혼자, 소규모, 대규모]
+                  example: 소규모
+                frequency:
+                  type: string
+                  enum: [주1회이상, 월2-3회, 월1회, 비정기]
+                  example: 주1회이상
+                availableDays:
+                  type: string
+                  example: SAT,SUN
+                preferredRegion:
+                  type: string
+                  nullable: true
+                  example: "0101"
+      responses:
+        '201':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbtiResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Users]
+      summary: MBTI 조회 (U-07)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbtiResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/mbti/result:
+    get:
+      tags: [Users]
+      summary: MBTI 결과 상세 (U-08)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mbtiType:
+                    type: string
+                    example: 그린메이커형
+                  color:
+                    type: string
+                    example: GREEN
+                  description:
+                    type: string
+                    example: 말보다 행동이 먼저인 세상을 바꾸는 실행가
+                  keywords:
+                    type: array
+                    items:
+                      type: string
+                    example: ['#실행력', '#야외 활동', '#체험형']
+                  recommendedCategories:
+                    type: array
+                    items:
+                      type: string
+                    example: ['환경·생태', '동물보호', '지역사회']
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Bookmarks ─────────────────────────────
+  /api/bookmarks:
+    get:
+      tags: [Bookmarks]
+      summary: 찜 목록 (B-01)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        volunteerId:
+                          type: integer
+                          example: 3427853
+                        progrmSj:
+                          type: string
+                          example: 한강 플로깅 환경 캠페인
+                        nanmmbyNm:
+                          type: string
+                          example: 서울환경연합
+                        actPlace:
+                          type: string
+                          example: 마포구
+                        progrmBgnde:
+                          type: integer
+                          example: 20260712
+                        progrmSttusSe:
+                          type: integer
+                          example: 2
+                        srvcClCode:
+                          type: string
+                          example: 환경ㆍ생태계보호
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: "2026-06-27T10:00:00"
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Bookmarks]
+      summary: 찜 추가 (B-02)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [volunteerId]
+              properties:
+                volunteerId:
+                  type: integer
+                  example: 3427853
+      responses:
+        '201':
+          description: 찜 추가 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  volunteerId:
+                    type: integer
+                    example: 3427853
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2026-06-27T10:00:00"
+        '409':
+          description: 이미 찜한 봉사
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/bookmarks/{volunteerId}:
+    delete:
+      tags: [Bookmarks]
+      summary: 찜 취소 (B-03)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: volunteerId
+          required: true
+          schema: { type: integer }
+          example: 3427853
+      responses:
+        '200':
+          description: 찜 취소 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 찜이 취소되었습니다.
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Activities ────────────────────────────
+  /api/activities:
+    get:
+      tags: [Activities]
+      summary: 내 활동 목록 (A-01)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, completed, history]
+          description: "pending: 신청한 봉사 / completed: 완료한 봉사 / history: 활동 이력"
+          example: pending
+        - in: query
+          name: pageNo
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    example: 4
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityItem'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Activities]
+      summary: 활동 신청 기록 (A-02)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [volunteerId]
+              properties:
+                volunteerId:
+                  type: integer
+                  example: 3427853
+                scheduledDate:
+                  type: string
+                  format: date
+                  example: "2026-07-12"
+      responses:
+        '201':
+          description: 신청 기록 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityItem'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/activities/{id}/complete:
+    put:
+      tags: [Activities]
+      summary: 활동 완료 처리 (A-03)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          example: 1
+      responses:
+        '200':
+          description: 완료 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityItem'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/activities/stats:
+    get:
+      tags: [Activities]
+      summary: 활동 통계 (A-04)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    description: 누적 봉사 횟수
+                    example: 12
+                  totalHours:
+                    type: number
+                    description: 총 활동 시간(h)
+                    example: 36
+                  totalOrgs:
+                    type: integer
+                    description: 활동 기관 수
+                    example: 4
+                  nextBadge:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: 골드 봉사자
+                      required:
+                        type: integer
+                        example: 20
+                      current:
+                        type: integer
+                        example: 12
+                  categoryStats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        categoryCode:
+                          type: string
+                          example: ENV
+                        name:
+                          type: string
+                          example: 환경·생태
+                        count:
+                          type: integer
+                          example: 7
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Search ────────────────────────────────
+  /api/search:
+    get:
+      tags: [Search]
+      summary: 검색 (S-01)
+      parameters:
+        - in: query
+          name: keyword
+          required: true
+          schema: { type: string }
+          example: 환경
+        - in: query
+          name: sidoCd
+          schema: { type: integer }
+          example: 6110000
+        - in: query
+          name: gugunCd
+          schema: { type: integer }
+          example: 3140000
+        - in: query
+          name: srvcClCode
+          schema: { type: string }
+          example: 환경ㆍ생태계보호
+        - in: query
+          name: progrmSttusSe
+          schema: { type: integer }
+          description: "2: 모집중만"
+          example: 2
+        - in: query
+          name: pageNo
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: numOfRows
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolunteerListResponse'
+
+  /api/search/popular:
+    get:
+      tags: [Search]
+      summary: 인기 검색어 (S-02)
+      parameters:
+        - in: query
+          name: categoryCode
+          schema: { type: string }
+          description: 없으면 전체 탭
+          example: ENV
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        rank:
+                          type: integer
+                          example: 1
+                        keyword:
+                          type: string
+                          example: 환경
+                        rankChange:
+                          type: integer
+                          example: 2
+                        isNew:
+                          type: boolean
+                          example: false
+
+  /api/search/history:
+    get:
+      tags: [Search]
+      summary: 최근 검색어 (S-03)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 5
+                        keyword:
+                          type: string
+                          example: 환경 봉사
+                        searchedAt:
+                          type: string
+                          format: date-time
+                          example: "2026-06-27T10:00:00"
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Search]
+      summary: 검색 기록 삭제 (S-04)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 삭제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 검색 기록이 삭제되었습니다.
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Categories ────────────────────────────
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: 카테고리 목록 (C-01)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          example: ENV
+                        name:
+                          type: string
+                          example: 환경·생태
+                        displayName:
+                          type: string
+                          example: 환경·생태
+                        srvcClCode:
+                          type: string
+                          example: 환경ㆍ생태계보호
+
+  # ── Regions ───────────────────────────────
+  /api/regions:
+    get:
+      tags: [Regions]
+      summary: 지역 목록 (R-01)
+      parameters:
+        - in: query
+          name: sidoCd
+          schema: { type: integer }
+          description: 있으면 해당 시도의 구군 목록 반환, 없으면 시도 목록 반환
+          example: 6110000
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    description: sidoCd 없을 때 - 시도 목록
+                    properties:
+                      sido:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: integer
+                              example: 6110000
+                            name:
+                              type: string
+                              example: 서울
+                  - type: object
+                    description: sidoCd 있을 때 - 구군 목록
+                    properties:
+                      gugun:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            code:
+                              type: integer
+                              example: 3230000
+                            name:
+                              type: string
+                              example: 강남구
+
+  # ── Notifications ─────────────────────────
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: 알림 목록 (N-01)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        type:
+                          type: string
+                          enum: [deadline, activity_reminder, badge]
+                          example: deadline
+                        title:
+                          type: string
+                          example: 마감 임박 봉사
+                        body:
+                          type: string
+                          example: "'한강 플로깅 캠페인' 모집이 내일 마감됩니다."
+                        isRead:
+                          type: boolean
+                          example: false
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: "2026-06-27T09:00:00"
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/notifications/{id}/read:
+    put:
+      tags: [Notifications]
+      summary: 알림 읽음 처리 (N-02)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          example: 1
+      responses:
+        '200':
+          description: 읽음 처리 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 알림이 읽음 처리되었습니다.
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

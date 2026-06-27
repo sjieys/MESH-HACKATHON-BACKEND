@@ -1,0 +1,44 @@
+{
+  "name": "voda-backend",
+  "version": "1.0.0",
+  "description": "VoDa 개인화 봉사 매칭 앱 백엔드 (Express + Prisma + MySQL)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js",
+    "sync:1365": "node src/jobs/sync1365.job.js",
+    "sync:vms": "node src/jobs/syncVms.job.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.620.0",
+    "@prisma/client": "^5.18.0",
+    "axios": "^1.18.1",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.11",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "fast-xml-parser": "^4.4.1",
+    "google-auth-library": "^9.11.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0",
+    "selenium-webdriver": "^4.23.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "prisma": "^5.18.0"
+  }
+}

@@ -1,0 +1,31 @@
+Method,API No.,이름,EndPoint,FE 담당자,BE 담당자,상태,프론트 연동 여부
+GET,H-01,홈 화면 데이터,/api/home,,,시작 전,시작 전
+GET,V-01,봉사 목록,/api/volunteers,,,시작 전,시작 전
+GET,V-02,MBTI 기반 추천,/api/volunteers/recommended,,,시작 전,시작 전
+GET,V-03,마감 임박 목록,/api/volunteers/deadline,,,시작 전,시작 전
+GET,V-04,시간 기반 봉사 매칭,/api/volunteers/schedule,,,시작 전,시작 전
+GET,V-05,지도용 봉사 목록,/api/volunteers/map,,,시작 전,시작 전
+GET,V-06,봉사 상세,/api/volunteers/:id,,,시작 전,시작 전
+POST,U-01,회원가입,/api/users/signup,,,시작 전,시작 전
+POST,U-02,로그인,/api/users/login,,,시작 전,시작 전
+POST,U-03,소셜 로그인,/api/users/social-login,,,시작 전,시작 전
+GET,U-04,내 정보 조회,/api/users/me,,,시작 전,시작 전
+PUT,U-05,내 정보 수정,/api/users/me,,,시작 전,시작 전
+POST,U-06,MBTI 저장,/api/users/mbti,,,시작 전,시작 전
+GET,U-07,MBTI 조회,/api/users/mbti,,,시작 전,시작 전
+GET,U-08,MBTI 결과 상세,/api/users/mbti/result,,,시작 전,시작 전
+GET,B-01,찜 목록,/api/bookmarks,,,시작 전,시작 전
+POST,B-02,찜 추가,/api/bookmarks,,,시작 전,시작 전
+DELETE,B-03,찜 취소,/api/bookmarks/:volunteerId,,,시작 전,시작 전
+GET,A-01,내 활동 목록,/api/activities,,,시작 전,시작 전
+POST,A-02,활동 신청 기록,/api/activities,,,시작 전,시작 전
+PUT,A-03,활동 완료 처리,/api/activities/:id/complete,,,시작 전,시작 전
+GET,A-04,활동 통계,/api/activities/stats,,,시작 전,시작 전
+GET,S-01,검색,/api/search,,,시작 전,시작 전
+GET,S-02,인기 검색어,/api/search/popular,,,시작 전,시작 전
+GET,S-03,최근 검색어,/api/search/history,,,시작 전,시작 전
+DELETE,S-04,검색 기록 삭제,/api/search/history,,,시작 전,시작 전
+GET,C-01,카테고리 목록,/api/categories,,,시작 전,시작 전
+GET,R-01,지역 목록,/api/regions,,,시작 전,시작 전
+GET,N-01,알림 목록,/api/notifications,,,시작 전,시작 전
+PUT,N-02,알림 읽음 처리,/api/notifications/:id/read,,,시작 전,시작 전

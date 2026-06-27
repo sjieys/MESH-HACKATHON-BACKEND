@@ -1,0 +1,342 @@
+// VoDa Prisma schema
+// ERD(VoDa_ERD_최종_LLM.md) 기준 + 최신 PDF User 규칙 반영
+// DB 컬럼명은 @map("snake_case"), 테이블명은 @@map("table_name")
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================
+// Enums
+// =========================
+
+enum UserProvider {
+  LOCAL  @map("local")
+  KAKAO  @map("kakao")
+  NAVER  @map("naver")
+  GOOGLE @map("google")
+}
+
+enum AvatarType {
+  SPROUT
+  HERB
+  CLOVER
+  TREE
+  PAW
+  PALETTE
+  HANDSHAKE
+  STAR
+}
+
+enum DayType {
+  WEEKDAY_MORNING
+  WEEKDAY_AFTERNOON
+  WEEKEND
+  ANY
+}
+
+enum FrequencyType {
+  MONTHLY_1
+  MONTHLY_2_3
+  WEEKLY
+  IRREGULAR
+}
+
+enum ActivityPlace {
+  INDOOR
+  OUTDOOR
+}
+
+enum GroupType {
+  SOLO
+  GROUP
+}
+
+enum RegionType {
+  NEARBY
+  CUSTOM
+  ONLINE
+}
+
+enum VolunteerSource {
+  API_1365 @map("1365")
+  VMS      @map("vms")
+}
+
+enum VolunteerStatus {
+  RECRUITING @map("RECRUITING")
+  CLOSED     @map("CLOSED")
+  UNKNOWN    @map("UNKNOWN")
+}
+
+enum TimeParseSource {
+  API     @map("API")
+  CONTENT @map("CONTENT")
+  TITLE   @map("TITLE")
+  UNKNOWN @map("UNKNOWN")
+}
+
+enum ActivityStatus {
+  PENDING   @map("pending")
+  SCHEDULED @map("scheduled")
+  COMPLETED @map("completed")
+  CANCELLED @map("cancelled")
+}
+
+enum NotificationType {
+  DEADLINE          @map("deadline")
+  ACTIVITY_REMINDER @map("activity_reminder")
+  BADGE             @map("badge")
+  SYSTEM            @map("system")
+}
+
+// =========================
+// User 영역 (최신 PDF 우선)
+// =========================
+
+model User {
+  id          Int          @id @default(autoincrement())
+  provider    UserProvider
+  providerId  String       @map("provider_id") @db.VarChar(100)
+  email       String?      @unique @db.VarChar(100)
+  nickname    String?      @db.VarChar(50)
+  avatarType  AvatarType?  @map("avatar_type")
+  role        String       @default("USER") @db.VarChar(20)
+  lastLoginAt DateTime?    @map("last_login_at")
+  deletedAt   DateTime?    @map("deleted_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  interests            UserInterest[]
+  mbti                 VolunteerMbti?
+  notificationSetting  NotificationSetting?
+  bookmarks            Bookmark[]
+  activities           Activity[]
+  userBadges           UserBadge[]
+  searchHistories      SearchHistory[]
+  notifications        Notification[]
+
+  @@unique([provider, providerId])
+  @@map("users")
+}
+
+model UserInterest {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  categoryCode String   @map("category_code") @db.VarChar(10)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryCode])
+  @@index([userId])
+  @@map("user_interests")
+}
+
+model VolunteerMbti {
+  id            Int           @id @default(autoincrement())
+  userId        Int           @unique @map("user_id")
+  mbtiCode      String        @map("mbti_code") @db.VarChar(30)
+  mbtiName      String        @map("mbti_name") @db.VarChar(50)
+  mbtiImageUrl  String?       @map("mbti_image_url") @db.VarChar(255)
+  description   String?       @db.VarChar(255)
+  day           DayType
+  frequency     FrequencyType
+  activityPlace ActivityPlace @map("activity_place")
+  groupType     GroupType     @map("group_type")
+  regionType    RegionType    @map("region_type")
+  sidoCd        Int?          @map("sido_cd")
+  gugunCd       Int?          @map("gugun_cd")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("volunteer_mbti")
+}
+
+model NotificationSetting {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique @map("user_id")
+  deadlineAlert    Boolean  @default(true) @map("deadline_alert")
+  activityReminder Boolean  @default(true) @map("activity_reminder")
+  badgeAlert       Boolean  @default(true) @map("badge_alert")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+// =========================
+// Volunteers (1365/VMS 통합 캐시)
+// =========================
+
+model Volunteer {
+  id              Int             @id @default(autoincrement())
+  source          VolunteerSource
+  sourceId        String          @map("source_id") @db.VarChar(50)
+  title           String          @db.VarChar(200)
+  orgName         String?         @map("org_name") @db.VarChar(100)
+  actPlace        String?         @map("act_place") @db.VarChar(200)
+  sidoCd          Int?            @map("sido_cd")
+  gugunCd         Int?            @map("gugun_cd")
+  latitude        Decimal?        @db.Decimal(10, 7)
+  longitude       Decimal?        @db.Decimal(10, 7)
+  categoryCode    String?         @map("category_code") @db.VarChar(10)
+  srvcClCode      String?         @map("srvc_cl_code") @db.VarChar(50)
+  startDate       DateTime?       @map("start_date") @db.Date
+  endDate         DateTime?       @map("end_date") @db.Date
+  noticeStartDate DateTime?       @map("notice_start_date") @db.Date
+  noticeEndDate   DateTime?       @map("notice_end_date") @db.Date
+  actBeginTime    DateTime?       @map("act_begin_time") @db.Time(0)
+  actEndTime      DateTime?       @map("act_end_time") @db.Time(0)
+  rawTimeText     String?         @map("raw_time_text") @db.VarChar(120)
+  timeParseSource TimeParseSource @default(UNKNOWN) @map("time_parse_source")
+  actWkdy         String?         @map("act_wkdy") @db.VarChar(20)
+  recogHours      Decimal?        @map("recog_hours") @db.Decimal(4, 1)
+  content         String?         @db.Text
+  status          VolunteerStatus
+  rawStatus       String?         @map("raw_status") @db.VarChar(50)
+  adultPosbl      String?         @map("adult_posbl") @db.Char(1)
+  familyPosbl     String?         @map("family_posbl") @db.Char(1)
+  groupPosbl      String?         @map("group_posbl") @db.Char(1)
+  youthPosbl      String?         @map("youth_posbl") @db.Char(1)
+  recruitNum      Int?            @map("recruit_num")
+  applyTotal      Int?            @map("apply_total")
+  tel             String?         @db.VarChar(20)
+  email           String?         @db.VarChar(100)
+  url             String?         @db.VarChar(500)
+  detailUrl       String?         @map("detail_url") @db.VarChar(500)
+  syncedAt        DateTime?       @map("synced_at")
+  crawledAt       DateTime?       @map("crawled_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  bookmarks  Bookmark[]
+  activities Activity[]
+
+  @@unique([source, sourceId])
+  @@index([sidoCd])
+  @@index([categoryCode])
+  @@index([noticeEndDate])
+  @@map("volunteers")
+}
+
+model Bookmark {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  volunteerId Int      @map("volunteer_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, volunteerId])
+  @@index([userId])
+  @@map("bookmarks")
+}
+
+model Activity {
+  id           Int            @id @default(autoincrement())
+  userId       Int            @map("user_id")
+  volunteerId  Int?           @map("volunteer_id")
+  title        String?        @db.VarChar(200)
+  orgName      String?        @map("org_name") @db.VarChar(100)
+  categoryCode String?        @map("category_code") @db.VarChar(10)
+  status       ActivityStatus
+  scheduledDate DateTime?     @map("scheduled_date") @db.Date
+  completedAt  DateTime?      @map("completed_at")
+  hours        Decimal?       @db.Decimal(4, 1)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  volunteer Volunteer? @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, volunteerId])
+  @@index([userId])
+  @@map("activities")
+}
+
+// =========================
+// Badges
+// =========================
+
+model Badge {
+  id             Int     @id @default(autoincrement())
+  code           String  @unique @db.VarChar(30)
+  name           String  @db.VarChar(50)
+  thresholdCount Int     @map("threshold_count")
+  iconUrl        String? @map("icon_url") @db.VarChar(255)
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       Int      @id @default(autoincrement())
+  userId   Int      @map("user_id")
+  badgeId  Int      @map("badge_id")
+  earnedAt DateTime @default(now()) @map("earned_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// =========================
+// Search
+// =========================
+
+model SearchHistory {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  keyword    String   @db.VarChar(100)
+  searchedAt DateTime @default(now()) @map("searched_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("search_history")
+}
+
+model PopularKeyword {
+  id           Int      @id @default(autoincrement())
+  keyword      String   @db.VarChar(100)
+  categoryCode String?  @map("category_code") @db.VarChar(10)
+  searchRank   Int      @map("search_rank")
+  rankChange   Int      @default(0) @map("rank_change")
+  isNew        Boolean  @default(false) @map("is_new")
+  updatedAt    DateTime? @map("updated_at")
+
+  @@map("popular_keywords")
+}
+
+// =========================
+// Notifications
+// =========================
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  type      NotificationType
+  title     String           @db.VarChar(100)
+  body      String           @db.VarChar(300)
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
