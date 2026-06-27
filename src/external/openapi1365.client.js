@@ -37,7 +37,16 @@ async function fetchList({ pageNo = 1, numOfRows = 10, params = {} } = {}) {
       timeout: 15000,
       responseType: 'text',
     });
-    const json = parser.parse(res.data);
+    // 응답이 JSON인지 XML인지 자동 판별
+    const text = res.data;
+    let json;
+    if (typeof text === 'object') {
+      json = text;
+    } else if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      json = JSON.parse(text);
+    } else {
+      json = parser.parse(text);
+    }
     checkResult(json);
     const items = ensureArray(json?.response?.body?.items?.item);
     return items;
@@ -59,7 +68,15 @@ async function fetchDetail(progrmRegistNo) {
       timeout: 15000,
       responseType: 'text',
     });
-    const json = parser.parse(res.data);
+    const text = res.data;
+    let json;
+    if (typeof text === 'object') {
+      json = text;
+    } else if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      json = JSON.parse(text);
+    } else {
+      json = parser.parse(text);
+    }
     checkResult(json);
     const item = json?.response?.body?.items?.item;
     return Array.isArray(item) ? item[0] : item || null;
