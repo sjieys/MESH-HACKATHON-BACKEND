@@ -16,7 +16,10 @@ async function verifyGoogleIdToken(idToken) {
       throw AppError.unauthorized('올바른 토큰 형식이 아니에요');
     }
 
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    // base64url → base64 변환 (Node 버전 무관하게 동작)
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const raw = Buffer.from(b64, 'base64').toString('utf8');
+    const payload = JSON.parse(raw);
 
     if (!payload.sub) {
       throw AppError.unauthorized('로그인에 실패했어요. 다시 시도해 주세요');

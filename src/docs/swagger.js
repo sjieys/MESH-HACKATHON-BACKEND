@@ -57,14 +57,8 @@ const swaggerSpec = swaggerJsdoc({
       description: 'VoDa 개인화 봉사 매칭 앱 백엔드 API',
     },
     servers: [
-      {
-        url: 'https://mesh-hackathon-backend.onrender.com',
-        description: 'Production (Render)',
-      },
-      {
-        url: 'http://localhost:3000',
-        description: 'Local server',
-      },
+      ...(process.env.NODE_ENV === 'production' ? [] : [{ url: 'http://localhost:3000', description: 'Local server' }]),
+      { url: 'https://mesh-hackathon-backend.onrender.com', description: 'Production (Render)' },
     ],
     tags: [
       { name: 'Health' },
@@ -427,6 +421,26 @@ const swaggerSpec = swaggerJsdoc({
           summary: '지역 목록',
           parameters: [{ name: 'sidoCd', in: 'query', schema: { type: 'integer', example: 6110000 } }],
           responses: { 200: { description: '조회 성공', content: { 'application/json': { schema: successResponse } } } },
+        },
+      },
+      '/api/debug/test-login': {
+        get: {
+          tags: ['Debug'],
+          summary: '테스트 계정 로그인 (프론트 개발용)',
+          description: '가짜 유저를 DB에 upsert하고 JWT 토큰을 즉시 반환. Swagger Authorize에 붙여넣기용.',
+          parameters: [
+            { name: 'userId', in: 'query', schema: { type: 'string', example: '1' }, description: '테스트 유저 구분자 (생략 시 1)' },
+          ],
+          responses: {
+            200: {
+              description: '토큰 발급 성공',
+              content: {
+                'application/json': {
+                  example: { success: true, data: { token: 'eyJ...', userId: 1, nickname: '테스터1' } },
+                },
+              },
+            },
+          },
         },
       },
       '/api/debug/1365': {
