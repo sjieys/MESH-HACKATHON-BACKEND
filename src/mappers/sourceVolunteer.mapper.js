@@ -42,7 +42,7 @@ function from1365(item = {}) {
   return {
     source: 'API_1365',
     sourceId,
-    title: item.progrmSj || '제목 없음',
+    title: (item.progrmSj || '제목 없음').slice(0, 200),
     orgName: item.nanmmbyNm || item.mnnstNm || null,
     actPlace: item.actPlace || item.postAdres || null,
     sidoCd: item.sidoCd ? Number(item.sidoCd) : null,
@@ -85,9 +85,9 @@ function fromVms(parsed = {}) {
   return {
     source: 'VMS',
     sourceId,
-    title: parsed.title || '제목 없음',
-    orgName: parsed.orgName || null,
-    actPlace: parsed.actPlace || null,
+    title: (parsed.title || '제목 없음').slice(0, 200),
+    orgName: parsed.orgName ? parsed.orgName.slice(0, 100) : null,
+    actPlace: parsed.actPlace ? parsed.actPlace.slice(0, 200) : null,
     sidoCd: parsed.sidoCd || null,
     gugunCd: parsed.gugunCd || null,
     latitude: parsed.latitude || null,

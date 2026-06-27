@@ -18,7 +18,14 @@ function findByProvider(provider, providerId) {
 }
 
 function createSocialUser(data) {
-  return prisma.user.create({ data });
+  // email 중복 시 null로 처리 (해커톤용 - 다른 계정 가입 허용)
+  return prisma.user.create({ data }).catch(async (err) => {
+    if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
+      // email 중복이면 email 없이 재시도
+      return prisma.user.create({ data: { ...data, email: null } });
+    }
+    throw err;
+  });
 }
 
 function updateUser(userId, data) {
