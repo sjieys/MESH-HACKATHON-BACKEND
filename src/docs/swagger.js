@@ -58,6 +58,10 @@ const swaggerSpec = swaggerJsdoc({
     },
     servers: [
       {
+        url: 'https://mesh-hackathon-backend.onrender.com',
+        description: 'Production (Render)',
+      },
+      {
         url: 'http://localhost:3000',
         description: 'Local server',
       },
