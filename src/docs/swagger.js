@@ -57,14 +57,8 @@ const swaggerSpec = swaggerJsdoc({
       description: 'VoDa 개인화 봉사 매칭 앱 백엔드 API',
     },
     servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Local server',
-      },
-      {
-        url: 'https://mesh-hackathon-backend.onrender.com',
-        description: 'Production (Render)',
-      },
+      ...(process.env.NODE_ENV === 'production' ? [] : [{ url: 'http://localhost:3000', description: 'Local server' }]),
+      { url: 'https://mesh-hackathon-backend.onrender.com', description: 'Production (Render)' },
     ],
     tags: [
       { name: 'Health' },
